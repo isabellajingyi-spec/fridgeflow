@@ -317,6 +317,7 @@ export default function FridgeFlowWebsite() {
   const [slide, setSlide] = useState(0);
   const [itemsText, setItemsText] = useState("eggs, tomatoes, spinach, milk, yogurt, broccoli, chicken");
   const [shoppingSaved, setShoppingSaved] = useState(false);
+  const [shoppingList, setShoppingList] = useState<string[]>([]);
   const [photoName, setPhotoName] = useState("");
   const [scanned, setScanned] = useState(false);
   const [goal, setGoal] = useState("balanced diet");
@@ -514,7 +515,19 @@ export default function FridgeFlowWebsite() {
       setLoading(false);
     }
   }
-
+  function addToShoppingList() {
+    const itemsToAdd = grocerySuggestions.length
+      ? grocerySuggestions
+      : ["You already have the basics 👍"];
+  
+    setShoppingList((current) => {
+      const combined = [...current, ...itemsToAdd];
+  
+      return Array.from(new Set(combined));
+    });
+  
+    setShoppingSaved(true);
+  }
   async function cookNow(recipe: Recipe) {
     const dayMatch = recipe.tag.match(/Day\s+(\d+)/i);
     const recipeDay = dayMatch ? Number(dayMatch[1]) : 1;
@@ -751,11 +764,11 @@ export default function FridgeFlowWebsite() {
                 <div className="lg:col-span-3">
                   <label className="text-sm font-bold text-stone-700">Ingredient list</label>
                   <textarea
-                    value={itemsText}
-                    onChange={(event) => setItemsText(event.target.value)}
-                    rows={7}
-                    className="mt-2 w-full rounded-2xl border border-orange-100 bg-[#fffaf2] p-4 outline-none focus:border-[#ff6a00]"
-                  />
+  value={itemsText}
+  onChange={(event) => setItemsText(event.target.value)}
+  rows={8}
+  className="mt-2 min-h-[320px] w-full resize-none rounded-2xl border border-orange-100 bg-[#fffaf2] p-6 text-lg leading-8 outline-none focus:border-[#ff6a00]"
+/>
                 </div>
 
                 <div className="space-y-4 lg:col-span-2">
@@ -990,9 +1003,39 @@ export default function FridgeFlowWebsite() {
               ))}
             </div>
 
-            <button onClick={() => setShoppingSaved(true)} className="mt-6 rounded-full bg-[#ff6a00] px-5 py-3 font-black text-white">
-              {shoppingSaved ? "Shopping list ready ✓" : "Add to shopping list"}
-            </button>
+            <button
+  onClick={addToShoppingList}
+  className="mt-6 rounded-full bg-[#ff6a00] px-5 py-3 font-black text-white"
+>
+  {shoppingSaved ? "Added to shopping list ✓" : "Add to shopping list"}
+</button>
+{shoppingList.length > 0 && (
+  <div className="mt-6 rounded-3xl bg-[#fffaf2] p-5">
+    <h3 className="text-xl font-black">Shopping List 🛒</h3>
+
+    <div className="mt-4 space-y-3">
+      {shoppingList.map((item) => (
+        <div
+          key={item}
+          className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 text-sm font-bold text-stone-700 shadow-sm"
+        >
+          <span>{item}</span>
+
+          <button
+            onClick={() =>
+              setShoppingList((current) =>
+                current.filter((shoppingItem) => shoppingItem !== item)
+              )
+            }
+            className="text-xs font-black text-[#c2410c]"
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
