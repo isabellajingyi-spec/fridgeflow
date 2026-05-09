@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
@@ -214,47 +214,51 @@ const featureCards = [
 const defaultStorageItems: StorageItem[] = [
   {
     name: "Mushrooms",
-    added: "May 7",
+    added: "Today",
     place: "Fridge drawer",
     status: "Use soon",
     risk: "use_soon",
   },
   {
     name: "Tomatoes",
-    added: "May 8",
+    added: "Today",
     place: "Produce shelf",
     status: "Fresh",
     risk: "safe",
   },
   {
     name: "Spinach",
-    added: "May 6",
+    added: "Today",
     place: "Fridge drawer",
     status: "Use soon",
     risk: "use_soon",
   },
   {
     name: "Eggs",
-    added: "May 6",
+    added: "Today",
     place: "Middle shelf",
     status: "Fresh",
     risk: "safe",
   },
   {
     name: "Milk",
-    added: "May 5",
+    added: "Today",
     place: "Door shelf",
-    status: "Use soon",
+    status: "Medium",
     risk: "medium",
   },
   {
     name: "Chicken",
-    added: "May 7",
+    added: "Today",
     place: "Lower shelf",
     status: "Cook today",
     risk: "cook_today",
   },
 ];
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 function progressPercent(value: number, goal: number) {
   return Math.min(100, Math.round((value / goal) * 100));
@@ -272,7 +276,7 @@ function riskClass(risk: string) {
   if (risk === "expired_or_high_risk") return "bg-red-100 text-red-700";
   if (risk === "use_soon" || risk === "cook_today") return "bg-[#fff0df] text-[#c2410c]";
   if (risk === "medium") return "bg-[#fff7cc] text-[#854d0e]";
-  if (risk === "unknown") return "bg-stone-100 text-stone-600";
+  if (risk === "unknown") return "bg-[#eaf7df] text-[#3f6212]";
   return "bg-[#eaf7df] text-[#3f6212]";
 }
 
@@ -281,12 +285,12 @@ function riskLabel(risk: string) {
   if (risk === "use_soon") return "Use soon";
   if (risk === "cook_today") return "Cook today";
   if (risk === "medium") return "Medium";
-  if (risk === "unknown") return "Unknown";
-  return "Safe";
+  if (risk === "unknown") return "Fresh";
+  return "Fresh";
 }
 
 function getRecipeImage(recipeName: string) {
-  const name = recipeName.toLowerCase();
+  const name = String(recipeName || "").toLowerCase();
 
   if (name.includes("egg")) {
     return "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=900&q=85";
@@ -340,11 +344,11 @@ function getRecipeImage(recipeName: string) {
   return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=85";
 }
 
-function getRecipeIngredients(recipeName: string, userIngredients: string[]) {
-  const lowerRecipeName = recipeName.toLowerCase();
+function getRecipeIngredients(recipeName: string | undefined, userIngredients: string[]) {
+  const lowerRecipeName = String(recipeName || "").toLowerCase();
 
   const matched = userIngredients.filter((ingredient) => {
-    const cleanIngredient = ingredient.toLowerCase().trim();
+    const cleanIngredient = String(ingredient || "").toLowerCase().trim();
     if (!cleanIngredient) return false;
 
     const firstWord = cleanIngredient.split(" ")[0];
@@ -410,8 +414,9 @@ function getFoodStoragePlace(name: string) {
 function getStatusFromResultItem(item: ResultItem) {
   if (item.risk === "expired_or_high_risk") return "High risk";
   if (item.risk === "use_soon") return "Use soon";
+  if (item.risk === "cook_today") return "Cook today";
   if (item.risk === "medium") return "Medium";
-  if (item.risk === "unknown") return "Unknown";
+  if (item.risk === "unknown") return "Fresh";
   return "Fresh";
 }
 
@@ -420,10 +425,11 @@ export default function FridgeFlowWebsite() {
   const [itemsText, setItemsText] = useState(
     "eggs, tomatoes, spinach, milk, yogurt, broccoli, chicken"
   );
+  const [shoppingSaved, setShoppingSaved] = useState(false);
   const [photoName, setPhotoName] = useState("");
   const [scanned, setScanned] = useState(false);
   const [goal, setGoal] = useState("balanced diet");
-  const [boughtDate, setBoughtDate] = useState("");
+  const [scanDate, setScanDate] = useState("");
   const [height, setHeight] = useState(165);
   const [weight, setWeight] = useState(55);
   const [restrictions, setRestrictions] = useState("");
@@ -530,12 +536,12 @@ export default function FridgeFlowWebsite() {
 
     return resultItems.map((item) => ({
       name: item.name,
-      added: boughtDate || "Latest scan",
+      added: scanDate || "Latest scan",
       place: getFoodStoragePlace(item.name),
       status: getStatusFromResultItem(item),
-      risk: item.risk,
+      risk: item.risk === "unknown" ? "safe" : item.risk,
     }));
-  }, [resultItems, boughtDate]);
+  }, [resultItems, scanDate]);
 
   const grocerySuggestions = useMemo(() => {
     const lowerIngredients = ingredients.map((item) => item.toLowerCase());
@@ -554,25 +560,28 @@ export default function FridgeFlowWebsite() {
       return !lowerIngredients.some((ingredient) => ingredient.includes(plain));
     });
   }, [ingredients]);
+
   function fileToBase64(file: File) {
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
-  
+
       reader.onload = () => resolve(String(reader.result));
       reader.onerror = reject;
-  
+
       reader.readAsDataURL(file);
     });
   }
+
   async function simulatePhotoScan(file?: File) {
     if (!file) return;
-  
+
     try {
       setLoading(true);
       setPhotoName(file.name);
-  
+      setScanDate(todayISO());
+
       const imageBase64 = await fileToBase64(file);
-  
+
       const response = await fetch("/api/detect-fridge-items", {
         method: "POST",
         headers: {
@@ -580,19 +589,29 @@ export default function FridgeFlowWebsite() {
         },
         body: JSON.stringify({ imageBase64 }),
       });
-  
+
       const data = await response.json();
-  
+
       console.log("Fridge scan response:", data);
-  
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to scan fridge.");
       }
-  
+
       const detectedNames = data.items
-        .map((item: { name: string }) => item.name)
+        .map((item: { name: string }) =>
+          item.name
+            .replace(/\*/g, "")
+            .replace(/the image shows.*?:/gi, "")
+            .replace(/a bag of /gi, "")
+            .replace(/a container of /gi, "")
+            .replace(/a jar of /gi, "")
+            .replace(/a box of /gi, "")
+            .trim()
+            .toLowerCase()
+        )
         .filter(Boolean);
-  
+
       setItemsText(detectedNames.join(", "));
       setScanned(true);
     } catch (error) {
@@ -607,9 +626,12 @@ export default function FridgeFlowWebsite() {
     try {
       setLoading(true);
 
+      const effectiveScanDate = scanDate || todayISO();
+      if (!scanDate) setScanDate(effectiveScanDate);
+
       const items = ingredients.map((name) => ({
         name,
-        boughtDate: boughtDate || null,
+        boughtDate: effectiveScanDate,
         opened: null,
       }));
 
@@ -622,6 +644,10 @@ export default function FridgeFlowWebsite() {
           items,
           goal,
           restrictions,
+          heightCm: height,
+          weightKg: weight,
+          bmi,
+          bmiCategory: getBmiCategory(bmi),
         }),
       });
 
@@ -649,11 +675,12 @@ export default function FridgeFlowWebsite() {
 
   async function cookNow(recipe: Recipe) {
     let aiRecipe: any = null;
+
     setSelectedRecipe({
       ...recipe,
       steps: ["Generating AI cooking steps..."],
     });
-  
+
     try {
       const response = await fetch("/api/recipe-detail", {
         method: "POST",
@@ -667,11 +694,11 @@ export default function FridgeFlowWebsite() {
           restrictions,
         }),
       });
-  
+
       const data = await response.json();
-  
+
       aiRecipe = data.recipe;
-  
+
       if (aiRecipe?.steps?.length) {
         setSelectedRecipe({
           ...recipe,
@@ -680,6 +707,7 @@ export default function FridgeFlowWebsite() {
             ? aiRecipe.ingredients
             : recipe.ingredients,
           steps: aiRecipe.steps,
+          nutrition: aiRecipe.nutrition ?? recipe.nutrition,
         });
       } else {
         setSelectedRecipe(recipe);
@@ -688,7 +716,7 @@ export default function FridgeFlowWebsite() {
       console.error(error);
       setSelectedRecipe(recipe);
     }
-  
+
     const nutritionToAdd = aiRecipe?.nutrition ?? recipe.nutrition;
 
     setNutrition((current) => ({
@@ -697,7 +725,7 @@ export default function FridgeFlowWebsite() {
       fiber: current.fiber + Number(nutritionToAdd.fiber ?? 0),
       vitaminA: current.vitaminA + Number(nutritionToAdd.vitaminA ?? 0),
     }));
-  
+
     document.getElementById("recipe-detail")?.scrollIntoView({ behavior: "smooth" });
   }
 
@@ -891,7 +919,7 @@ export default function FridgeFlowWebsite() {
                 className="mt-2 w-full rounded-2xl border border-orange-100 bg-[#fffaf2] p-4 outline-none focus:border-[#ff6a00]"
               />
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="mt-5 grid gap-4 md:grid-cols-1">
                 <div>
                   <label className="text-sm font-bold text-stone-700">Goal</label>
                   <select
@@ -904,18 +932,6 @@ export default function FridgeFlowWebsite() {
                     <option value="gain weight">Gain weight</option>
                     <option value="maintain weight">Maintain weight</option>
                   </select>
-                </div>
-
-                <div>
-                  <label className="text-sm font-bold text-stone-700">
-                    Bought date / scan date
-                  </label>
-                  <input
-                    type="date"
-                    value={boughtDate}
-                    onChange={(event) => setBoughtDate(event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-orange-100 bg-[#fffaf2] p-4 outline-none focus:border-[#ff6a00]"
-                  />
                 </div>
               </div>
 
@@ -981,7 +997,7 @@ export default function FridgeFlowWebsite() {
                   className="flex items-center gap-2 rounded-full bg-[#ff6a00] px-7 py-4 font-black text-white shadow-lg shadow-orange-200 transition hover:bg-[#e85f00] disabled:opacity-60"
                 >
                   <Camera className="h-5 w-5" />
-                  {loading ? "Generating..." : "Generate Meal Plan"}
+                  {loading ? "AI is generating..." : "Step 2 · Generate AI Meal Plan"}
                 </button>
 
                 <a
@@ -1007,8 +1023,6 @@ export default function FridgeFlowWebsite() {
                   ? "Recommended from your fridge 🍽️"
                   : "You can make this right now 🍽️"}
               </h2>
-
-             
             </div>
 
             <p className="hidden text-sm font-bold text-[#d9480f] md:block">
@@ -1129,9 +1143,9 @@ export default function FridgeFlowWebsite() {
 
         <section id="nutrition" className="mx-auto max-w-7xl px-6 py-14">
           <div className="rounded-[2rem] bg-white p-7 shadow-xl shadow-stone-200/60">
-            <h2 className="text-4xl font-black">Daily Nutrition Goal 📊</h2>
+            <h2 className="text-4xl font-black">Estimated Daily Nutrition 📊</h2>
             <p className="mt-2 text-stone-600">
-              Cook a recipe and watch the bars grow.
+              Cook a recipe and watch the AI-estimated bars grow.
             </p>
 
             <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -1202,25 +1216,29 @@ export default function FridgeFlowWebsite() {
                       message: "Use fresh produce first",
                     },
                   ]
-              ).map((food) => (
-                <div key={food.name} className="rounded-3xl bg-[#fffaf2] p-5">
-                  <span
-                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${riskClass(
-                      food.risk
-                    )}`}
-                  >
-                    {riskLabel(food.risk)}
-                  </span>
+              ).map((food) => {
+                const displayRisk = food.risk === "unknown" ? "safe" : food.risk;
 
-                  <p className="mt-3 text-lg font-black capitalize">{food.name}</p>
-                  <p className="mt-1 text-sm text-stone-600">
-                    {food.message ??
-                      (food.estimatedDaysLeft !== null
-                        ? `${food.estimatedDaysLeft} day(s) left`
-                        : "Add a scan date for better estimate")}
-                  </p>
-                </div>
-              ))}
+                return (
+                  <div key={food.name} className="rounded-3xl bg-[#fffaf2] p-5">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${riskClass(
+                        displayRisk
+                      )}`}
+                    >
+                      {riskLabel(displayRisk)}
+                    </span>
+
+                    <p className="mt-3 text-lg font-black capitalize">{food.name}</p>
+                    <p className="mt-1 text-sm text-stone-600">
+                      {food.message ??
+                        (food.estimatedDaysLeft !== null
+                          ? `${food.estimatedDaysLeft} day(s) left`
+                          : "Fresh from latest scan")}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -1283,8 +1301,11 @@ export default function FridgeFlowWebsite() {
               ))}
             </div>
 
-            <button className="mt-6 rounded-full bg-[#ff6a00] px-5 py-3 font-black text-white">
-              Add to shopping list
+            <button
+              onClick={() => setShoppingSaved(true)}
+              className="mt-6 rounded-full bg-[#ff6a00] px-5 py-3 font-black text-white"
+            >
+              {shoppingSaved ? "Shopping list ready ✓" : "Add to shopping list"}
             </button>
           </div>
 
@@ -1315,3 +1336,5 @@ export default function FridgeFlowWebsite() {
     </div>
   );
 }
+
+
