@@ -648,6 +648,7 @@ export default function FridgeFlowWebsite() {
   }
 
   async function cookNow(recipe: Recipe) {
+    let aiRecipe: any = null;
     setSelectedRecipe({
       ...recipe,
       steps: ["Generating AI cooking steps..."],
@@ -669,7 +670,7 @@ export default function FridgeFlowWebsite() {
   
       const data = await response.json();
   
-      const aiRecipe = data.recipe;
+      aiRecipe = data.recipe;
   
       if (aiRecipe?.steps?.length) {
         setSelectedRecipe({
@@ -688,11 +689,13 @@ export default function FridgeFlowWebsite() {
       setSelectedRecipe(recipe);
     }
   
+    const nutritionToAdd = aiRecipe?.nutrition ?? recipe.nutrition;
+
     setNutrition((current) => ({
-      calories: current.calories + recipe.nutrition.calories,
-      protein: current.protein + recipe.nutrition.protein,
-      fiber: current.fiber + recipe.nutrition.fiber,
-      vitaminA: current.vitaminA + recipe.nutrition.vitaminA,
+      calories: current.calories + Number(nutritionToAdd.calories ?? 0),
+      protein: current.protein + Number(nutritionToAdd.protein ?? 0),
+      fiber: current.fiber + Number(nutritionToAdd.fiber ?? 0),
+      vitaminA: current.vitaminA + Number(nutritionToAdd.vitaminA ?? 0),
     }));
   
     document.getElementById("recipe-detail")?.scrollIntoView({ behavior: "smooth" });

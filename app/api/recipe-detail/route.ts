@@ -114,7 +114,13 @@ Return ONLY this JSON:
     "specific cooking step 1",
     "specific cooking step 2",
     "specific cooking step 3"
-  ]
+  ],
+  "nutrition": {
+    "calories": 450,
+    "protein": 28,
+    "fiber": 6,
+    "vitaminA": 35
+  }
 }
 
 Rules:
@@ -122,7 +128,12 @@ Rules:
 - Use mostly the listed ingredients.
 - Pantry basics like salt, pepper, oil, soy sauce, garlic, or spices are allowed.
 - Do not write generic steps like "prepare ingredients" or "cook everything".
-- Keep it practical for a home cook.`,
+- Keep it practical for a home cook.
+- Estimate nutrition for one normal serving.
+- calories must be kcal.
+- protein and fiber must be grams.
+- vitaminA must be percent daily value.
+- If exact quantity is unclear, make a reasonable estimate based on a normal serving.`,
             },
           ],
           temperature: 0.2,
@@ -160,8 +171,14 @@ Rules:
               "Season to taste.",
               "Serve warm.",
             ],
+        nutrition: {
+          calories: Number(parsed.nutrition?.calories ?? 450),
+          protein: Number(parsed.nutrition?.protein ?? 25),
+          fiber: Number(parsed.nutrition?.fiber ?? 6),
+          vitaminA: Number(parsed.nutrition?.vitaminA ?? 25),
+        },
       },
-    });
+    });;
   } catch (error: any) {
     console.error(error);
 
