@@ -315,6 +315,7 @@ function getStatusFromResultItem(item: ResultItem) {
 
 export default function FridgeFlowWebsite() {
   const [slide, setSlide] = useState(0);
+  const [recipeImages, setRecipeImages] = useState<Record<string, string>>({});
   const [itemsText, setItemsText] = useState("eggs, tomatoes, spinach, milk, yogurt, broccoli, chicken");
   const [shoppingSaved, setShoppingSaved] = useState(false);
   const [shoppingList, setShoppingList] = useState<string[]>([]);
@@ -392,7 +393,30 @@ export default function FridgeFlowWebsite() {
   }, [mealPlan, ingredients]);
 
   const recipesToShow = recommendedRecipes.length ? recommendedRecipes : matchedRecipes.length ? matchedRecipes : recipes;
-
+  useEffect(() => {
+    if (!recommendedRecipes.length) return;
+  
+    let cancelled = false;
+  
+    async function loadImages() {
+      const entries = await Promise.all(
+        recommendedRecipes.map(async (recipe) => {
+          const image = await fetchRecipeImage(recipe);
+          return [`${recipe.tag}-${recipe.name}`, image] as const;
+        })
+      );
+  
+      if (!cancelled) {
+        setRecipeImages(Object.fromEntries(entries));
+      }
+    }
+  
+    loadImages();
+  
+    return () => {
+      cancelled = true;
+    };
+  }, [recommendedRecipes]);
   const storageItems: StorageItem[] = useMemo(() => {
     if (!resultItems.length) return defaultStorageItems;
 
@@ -527,6 +551,27 @@ export default function FridgeFlowWebsite() {
     });
   
     setShoppingSaved(true);
+  }
+  async function fetchRecipeImage(recipe: Recipe) {
+    try {
+      const response = await fetch("/api/recipe-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipeName: recipe.name,
+          ingredients: recipe.ingredients,
+        }),
+      });
+  
+      const data = await response.json();
+  
+      return data.image || recipe.image;
+    } catch (error) {
+      console.error(error);
+      return recipe.image;
+    }
   }
   async function cookNow(recipe: Recipe) {
     const dayMatch = recipe.tag.match(/Day\s+(\d+)/i);
@@ -868,7 +913,11 @@ export default function FridgeFlowWebsite() {
           <div className="flex snap-x gap-6 overflow-x-auto pb-6 [scrollbar-width:thin]">
             {recipesToShow.map((recipe) => (
               <article key={`${recipe.tag}-${recipe.name}`} className="min-w-[330px] snap-start overflow-hidden rounded-[2rem] bg-white shadow-xl shadow-stone-200/60 transition hover:-translate-y-1 hover:shadow-2xl">
-                <img src={recipe.image} alt={recipe.name} className="h-60 w-full bg-orange-50 object-cover" />
+             <img
+  src={recipeImages[`${recipe.tag}-${recipe.name}`] || recipe.image}
+  alt={recipe.name}
+  className="h-60 w-full bg-orange-50 object-cover"
+/>
 
                 <div className="p-6">
                   <div className="mb-3 flex items-center justify-between text-sm text-stone-500">
