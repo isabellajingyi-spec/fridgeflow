@@ -647,16 +647,54 @@ export default function FridgeFlowWebsite() {
     }
   }
 
-  function cookNow(recipe: Recipe) {
-    setSelectedRecipe(recipe);
-
+  async function cookNow(recipe: Recipe) {
+    setSelectedRecipe({
+      ...recipe,
+      steps: ["Generating AI cooking steps..."],
+    });
+  
+    try {
+      const response = await fetch("/api/recipe-detail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          recipeName: recipe.name,
+          ingredients: recipe.ingredients,
+          goal,
+          restrictions,
+        }),
+      });
+  
+      const data = await response.json();
+  
+      const aiRecipe = data.recipe;
+  
+      if (aiRecipe?.steps?.length) {
+        setSelectedRecipe({
+          ...recipe,
+          name: aiRecipe.name || recipe.name,
+          ingredients: aiRecipe.ingredients?.length
+            ? aiRecipe.ingredients
+            : recipe.ingredients,
+          steps: aiRecipe.steps,
+        });
+      } else {
+        setSelectedRecipe(recipe);
+      }
+    } catch (error) {
+      console.error(error);
+      setSelectedRecipe(recipe);
+    }
+  
     setNutrition((current) => ({
       calories: current.calories + recipe.nutrition.calories,
       protein: current.protein + recipe.nutrition.protein,
       fiber: current.fiber + recipe.nutrition.fiber,
       vitaminA: current.vitaminA + recipe.nutrition.vitaminA,
     }));
-
+  
     document.getElementById("recipe-detail")?.scrollIntoView({ behavior: "smooth" });
   }
 
