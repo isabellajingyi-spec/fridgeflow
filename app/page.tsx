@@ -332,7 +332,30 @@ export default function FridgeFlowWebsite() {
   const [mealPlan, setMealPlan] = useState<MealPlan | null>(null);
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const [nutrition, setNutrition] = useState({ calories: 0, protein: 0, fiber: 0, vitaminA: 0 });
-
+  const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
+  const [savedFoodItems, setSavedFoodItems] = useState<string[]>([]);
+  useEffect(() => {
+    const storedRecipes = localStorage.getItem("fridgeflow_saved_recipes");
+    const storedFoodItems = localStorage.getItem("fridgeflow_food_items");
+  
+    if (storedRecipes) {
+      setSavedRecipes(JSON.parse(storedRecipes));
+    }
+  
+    if (storedFoodItems) {
+      setSavedFoodItems(JSON.parse(storedFoodItems));
+      setItemsText(JSON.parse(storedFoodItems).join(", "));
+    }
+  }, []);
+  useEffect(() => {
+    const items = itemsText
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  
+    setSavedFoodItems(items);
+    localStorage.setItem("fridgeflow_food_items", JSON.stringify(items));
+  }, [itemsText]);
   useEffect(() => {
     const timer = window.setInterval(() => {
       setSlide((current) => (current + 1) % heroSlides.length);
@@ -572,6 +595,18 @@ export default function FridgeFlowWebsite() {
       console.error(error);
       return recipe.image;
     }
+  }
+  function saveRecipe(recipe: any) {
+    const updatedRecipes = [
+      recipe,
+      ...savedRecipes.filter((item) => item.name !== recipe.name),
+    ];
+  
+    setSavedRecipes(updatedRecipes);
+    localStorage.setItem(
+      "fridgeflow_saved_recipes",
+      JSON.stringify(updatedRecipes)
+    );
   }
   async function cookNow(recipe: Recipe) {
     const dayMatch = recipe.tag.match(/Day\s+(\d+)/i);
@@ -931,6 +966,29 @@ export default function FridgeFlowWebsite() {
                   <button onClick={() => cookNow(recipe)} className="mt-5 flex items-center gap-2 rounded-full bg-[#fff0df] px-5 py-3 text-sm font-black text-[#c2410c] transition hover:bg-orange-100">
                     Cook Now <ArrowRight className="h-4 w-4" />
                   </button>
+                  <button
+  onClick={() => saveRecipe(recipe)}
+  className="mt-4 rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-200"
+>
+  Save Recipe
+</button>
+<button
+  onClick={() =>
+    saveRecipe({
+      name: day.dinner,
+      time: "20 min",
+      tag: "AI generated",
+      image: getRecipeImage(day.dinner),
+      breakfast: day.breakfast,
+      lunch: day.lunch,
+      dinner: day.dinner,
+      reason: day.reason,
+    })
+  }
+  className="mt-3 rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-200"
+>
+  Save Recipe
+</button>
                 </div>
               </article>
             ))}
@@ -1098,6 +1156,86 @@ export default function FridgeFlowWebsite() {
           </div>
         </section>
       </main>
+      <section className="mx-auto max-w-7xl px-6 py-10">
+  <div className="rounded-[2rem] bg-white p-6 shadow-sm">
+    <h2 className="text-3xl font-bold">Saved Items & Recipes 💾</h2>
+
+    <div className="mt-6 grid gap-6 md:grid-cols-2">
+      <div>
+        <h3 className="font-bold text-stone-800">Saved Food Items</h3>
+
+        {savedFoodItems.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {savedFoodItems.map((item) => (
+              <span
+                key={item}
+                className="rounded-full bg-[#fff4df] px-4 py-2 text-sm font-medium text-stone-700"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-stone-500">
+            No food items saved yet.
+          </p>
+        )}
+
+        <button
+          onClick={() => {
+            setItemsText("");
+            setSavedFoodItems([]);
+            localStorage.removeItem("fridgeflow_food_items");
+          }}
+          className="mt-4 rounded-full bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"
+        >
+          Clear Food Items
+        </button>
+      </div>
+
+      <div>
+        <h3 className="font-bold text-stone-800">Saved Recipes</h3>
+
+        {savedRecipes.length > 0 ? (
+          <div className="mt-3 space-y-3">
+            {savedRecipes.map((recipe) => (
+              <div
+                key={recipe.name}
+                className="rounded-2xl bg-[#fff9f0] p-4"
+              >
+                <p className="font-bold">{recipe.name}</p>
+                <p className="text-sm text-stone-600">
+                  {recipe.tag} · {recipe.time}
+                </p>
+
+                <button
+                  onClick={() => setSelectedRecipe(recipe)}
+                  className="mt-3 rounded-full bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700"
+                >
+                  Open Recipe
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-stone-500">
+            No recipes saved yet.
+          </p>
+        )}
+
+        <button
+          onClick={() => {
+            setSavedRecipes([]);
+            localStorage.removeItem("fridgeflow_saved_recipes");
+          }}
+          className="mt-4 rounded-full bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"
+        >
+          Clear Recipes
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
 
       <footer className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-10 text-sm text-stone-500 md:flex-row md:items-center md:justify-between">
         <p>© 2026 FridgeFlow. Eat smart. Waste less.</p>
