@@ -721,7 +721,7 @@ export default function FridgeFlowWebsite() {
           <div className="mb-8">
             <p className="text-sm font-black uppercase tracking-[0.25em] text-[#d9480f]">AI Fridge Workflow</p>
             <h2 className="mt-3 max-w-4xl text-4xl font-black leading-tight md:text-5xl">
-              Scan, review, and generate meals from your fridge.
+              Fresh From The Fridge
             </h2>
           </div>
 
@@ -1018,7 +1018,7 @@ export default function FridgeFlowWebsite() {
           </div>
 
           <div className="rounded-[2rem] bg-[#ff6a00] p-7 text-white shadow-xl shadow-orange-200">
-            <h2 className="text-2xl font-black">Eat better without thinking too much</h2>
+            <h2 className="text-2xl font-black">Fresh Tips</h2>
             <div className="mt-6 space-y-4 text-orange-50"><p>🥦 Balance protein, vegetables, and carbs.</p><p>👍 Prioritize food that expires first.</p><p>🍽️ Turn leftovers into real meals.</p><p>✏️ Edit ingredients anytime.</p></div>
           </div>
         </section>
