@@ -972,23 +972,7 @@ export default function FridgeFlowWebsite() {
 >
   Save Recipe
 </button>
-<button
-  onClick={() =>
-    saveRecipe({
-      name: day.dinner,
-      time: "20 min",
-      tag: "AI generated",
-      image: getRecipeImage(day.dinner),
-      breakfast: day.breakfast,
-      lunch: day.lunch,
-      dinner: day.dinner,
-      reason: day.reason,
-    })
-  }
-  className="mt-3 rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-200"
->
-  Save Recipe
-</button>
+
                 </div>
               </article>
             ))}
